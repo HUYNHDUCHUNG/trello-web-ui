@@ -13,6 +13,7 @@ function Wordspaces() {
   return (
     <Box>
       <Button
+        sx={{ color: 'white' }}
         id='basic-button-workspaces'
         aria-controls={open ? 'basic-menu-workspaces' : undefined}
         aria-haspopup='true'
