@@ -5,6 +5,7 @@ import AddToDriveIcon from '@mui/icons-material/AddToDrive'
 import BoltIcon from '@mui/icons-material/Bolt'
 import FilterListIcon from '@mui/icons-material/FilterList'
 import GroupAddIcon from '@mui/icons-material/GroupAdd'
+import { capitalizeFirstLetter } from '~/utils/formatters'
 const CHIP_STYLE = {
   color: 'white',
   bgcolor: 'transparent',
@@ -15,7 +16,7 @@ const CHIP_STYLE = {
     color: 'white'
   }
 }
-function BoardBar() {
+function BoardBar({ board }) {
   return (
     <Box
       sx={{
@@ -32,8 +33,8 @@ function BoardBar() {
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-        <Chip sx={CHIP_STYLE} avatar={<DashboardIcon />} label='Dash board' clickable />
-        <Chip sx={CHIP_STYLE} avatar={<VpnLockIcon />} label='Private/Public WordPress' clickable />
+        <Chip sx={CHIP_STYLE} avatar={<DashboardIcon />} label={board?.title} clickable />
+        <Chip sx={CHIP_STYLE} avatar={<VpnLockIcon />} label={capitalizeFirstLetter(board?.type)} clickable />
         <Chip sx={CHIP_STYLE} avatar={<AddToDriveIcon />} label='Add To GoogleDriver' clickable />
         <Chip sx={CHIP_STYLE} avatar={<BoltIcon />} label='Automation' clickable />
         <Chip sx={CHIP_STYLE} avatar={<FilterListIcon />} label='Filter' clickable />
