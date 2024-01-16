@@ -6,7 +6,11 @@ import AddCardIcon from '@mui/icons-material/AddCard'
 import DragHandleIcon from '@mui/icons-material/DragHandle'
 import React from 'react'
 import ListCards from './ListCards/ListCards'
-function Column() {
+import { mapOrder } from '~/utils/sort'
+
+function Column({ column }) {
+  const orderedCards = mapOrder(column?.cards, column?.cardOrderIds, '_id')
+
   const [anchorEl, setAnchorEl] = React.useState(null)
   const open = Boolean(anchorEl)
   const handleClick = (event) => {
@@ -15,6 +19,7 @@ function Column() {
   const handleClose = () => {
     setAnchorEl(null)
   }
+
   return (
     <Box
       sx={{
@@ -39,7 +44,7 @@ function Column() {
         }}
       >
         <Typography variant='h6' sx={{ fontWeight: 'bold', cursor: 'pointer', fontSize: '1rem' }}>
-          Column Title
+          {column?.title}
         </Typography>
         <Box>
           <Tooltip title='More Options'>
@@ -104,7 +109,7 @@ function Column() {
       </Box>
 
       {/* Box Column List Card*/}
-      <ListCards />
+      <ListCards cards={orderedCards} />
 
       {/* Box Column Footer*/}
       <Box
