@@ -8,12 +8,14 @@ import {
   useSensor,
   useSensors,
   DragOverlay,
-  defaultDropAnimationSideEffects
+  defaultDropAnimationSideEffects,
+  closestCorners
 } from '@dnd-kit/core'
 import { useEffect, useState } from 'react'
 import { arrayMove } from '@dnd-kit/sortable'
 import Card from './ListColumns/Column/ListCards/Card/Card'
 import Column from './ListColumns/Column/Column'
+import { cloneDeep } from 'lodash'
 const ACTIVE_DRAG_ITEM_TYPE = {
   COLUMN: 'ACTIVE_DRAG_ITEM_TYPE_COLUMN',
   CARD: 'ACTIVE_DRAG_ITEM_TYPE_CARD'
@@ -29,10 +31,15 @@ function BoardContent({ board }) {
   const [activeDragItemId, setActiveDragItemId] = useState(null)
   const [activeDragItemType, setActiveDragItemType] = useState(null)
   const [activeDragItemData, setActiveDragItemData] = useState(null)
+  const [oldColumnDragingCard, setOldColumnDragingCard] = useState(null)
 
   useEffect(() => {
     setOrderedColumns(mapOrder(board?.columns, board?.columnOrderIds, '_id'))
   }, [board])
+
+  const findColumnByCardId = (cardId) => {
+    return orderedColumns.find((column) => column?.cards?.map((card) => card._id)?.includes(cardId))
+  }
 
   const handleDragStart = (event) => {
     setActiveDragItemId(event?.active?.id)
@@ -40,24 +47,112 @@ function BoardContent({ board }) {
       event?.active?.data?.current?.columnId ? ACTIVE_DRAG_ITEM_TYPE.CARD : ACTIVE_DRAG_ITEM_TYPE.COLUMN
     )
     setActiveDragItemData(event?.active?.data?.current)
+    if (event?.active?.data?.current?.columnId) {
+      setOldColumnDragingCard(findColumnByCardId(event?.active?.id))
+    }
+  }
+
+  const handleDragOver = (event) => {
+    if (activeDragItemType === ACTIVE_DRAG_ITEM_TYPE.COLUMN) return
+
+    const { active, over } = event
+    if (!active || !over) return
+
+    const {
+      id: activeDragingCardId,
+      data: { current: activeDragingCardData }
+    } = active
+    const { id: overCardId } = over
+
+    const activeColumn = findColumnByCardId(activeDragingCardId)
+    const overColumn = findColumnByCardId(overCardId)
+
+    if (!activeColumn || !overColumn) return
+
+    if (activeColumn._id !== overColumn._id) {
+      setOrderedColumns((prevColumns) => {
+        const overCardIndex = overColumn?.cards?.findIndex((card) => card._id === overCardId)
+
+        let newCardIndex
+        const isBelowOverItem =
+          active.rect.current.translated && active.rect.current.translated.top > over.rect.top + over.rect.height
+
+        const modifier = isBelowOverItem ? 1 : 0
+
+        newCardIndex = overCardIndex >= 0 ? overCardIndex + modifier : overColumn?.cards?.length + 1
+        const nextColumns = cloneDeep(prevColumns)
+        const nextActiveColumn = nextColumns.find((column) => column._id === activeColumn._id)
+        const nextOverColumn = nextColumns.find((column) => column._id === overColumn._id)
+
+        if (nextActiveColumn) {
+          nextActiveColumn.cards = nextActiveColumn.cards.filter((card) => card._id !== activeDragingCardId)
+          nextActiveColumn.cardOrderIds = nextActiveColumn.cards.map((card) => card._id)
+        }
+
+        if (nextOverColumn) {
+          nextOverColumn.cards = nextOverColumn.cards.filter((card) => card._id !== activeDragingCardId)
+          nextOverColumn.cards = nextOverColumn.cards.toSpliced(newCardIndex, 0, activeDragingCardData)
+          nextOverColumn.cardOrderIds = nextOverColumn.cards.map((card) => card._id)
+        }
+
+        return nextColumns
+      })
+    }
   }
 
   const handleDragEnd = (event) => {
     const { active, over } = event
 
-    if (!over) return
+    if (!active || !over) return
 
-    if (active.id !== event.id) {
-      const oldIndex = orderedColumns.findIndex((c) => c._id === active.id)
-      const newIndex = orderedColumns.findIndex((c) => c._id === over.id)
+    if (activeDragItemType === ACTIVE_DRAG_ITEM_TYPE.CARD) {
+      const {
+        id: activeDragingCardId,
+        data: { current: activeDragingCardData }
+      } = active
+      const { id: overCardId } = over
 
-      const dndOrderedColumns = arrayMove(orderedColumns, oldIndex, newIndex)
-      // const dndOrderedColumnsId = dndOrderedColumns.map((c) => c._id)
-      setOrderedColumns(dndOrderedColumns)
+      const activeColumn = findColumnByCardId(activeDragingCardId)
+      const overColumn = findColumnByCardId(overCardId)
+
+      if (!activeColumn || !overColumn) return
+
+      if (oldColumnDragingCard._id !== overColumn._id) {
+        console.log('khac cot')
+      } else {
+        console.log('cung cot')
+        const oldCardIndex = oldColumnDragingCard?.cards?.findIndex((c) => c._id === activeDragItemId)
+        const newCardIndex = overColumn?.cards?.findIndex((c) => c._id === overCardId)
+
+        const dndOrderedCards = arrayMove(oldColumnDragingCard?.cards, oldCardIndex, newCardIndex)
+
+        setOrderedColumns((prevColumns) => {
+          const nextColumn = cloneDeep(prevColumns)
+
+          const targetColumn = nextColumn.find((column) => column._id === overColumn._id)
+          targetColumn.cards = dndOrderedCards
+          targetColumn.cardOrderIds = dndOrderedCards.map((card) => card._id)
+
+          return nextColumn
+        })
+      }
     }
+
+    if (activeDragItemType === ACTIVE_DRAG_ITEM_TYPE.COLUMN) {
+      if (active.id !== event.id) {
+        const oldColumnIndex = orderedColumns.findIndex((c) => c._id === active.id)
+        const newColumnIndex = orderedColumns.findIndex((c) => c._id === over.id)
+
+        const dndOrderedColumns = arrayMove(orderedColumns, oldColumnIndex, newColumnIndex)
+        // const dndOrderedColumnsId = dndOrderedColumns.map((c) => c._id)
+        setOrderedColumns(dndOrderedColumns)
+      }
+    }
+
     setActiveDragItemId(null)
     setActiveDragItemType(null)
     setActiveDragItemData(null)
+    setOldColumnDragingCard(null)
   }
   const dropAnimation = {
     sideEffects: defaultDropAnimationSideEffects({
@@ -69,11 +164,14 @@ function BoardContent({ board }) {
     })
   }
 
-  // console.log('activeDragItemId:', activeDragItemId)
-  // console.log('activeDragItemType:', activeDragItemType)
-  // console.log('activeDragItemData:', activeDragItemData)
   return (
-    <DndContext onDragEnd={handleDragEnd} sensors={mySensors} onDragStart={handleDragStart}>
+    <DndContext
+      collisionDetection={closestCorners}
+      onDragEnd={handleDragEnd}
+      sensors={mySensors}
+      onDragOver={handleDragOver}
+      onDragStart={handleDragStart}
+    >
       <Box
         sx={{
           bgcolor: (theme) => (theme.palette.mode === 'dark' ? '#34495e' : '#2a9dcc'),
