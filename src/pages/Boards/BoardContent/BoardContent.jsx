@@ -9,13 +9,15 @@ import {
   useSensors,
   DragOverlay,
   defaultDropAnimationSideEffects,
-  closestCorners
+  closestCorners,
+  pointerWithin,
+  getFirstCollision
 } from '@dnd-kit/core'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { arrayMove } from '@dnd-kit/sortable'
 import Card from './ListColumns/Column/ListCards/Card/Card'
 import Column from './ListColumns/Column/Column'
-import { cloneDeep } from 'lodash'
+import { cloneDeep, over } from 'lodash'
 const ACTIVE_DRAG_ITEM_TYPE = {
   COLUMN: 'ACTIVE_DRAG_ITEM_TYPE_COLUMN',
   CARD: 'ACTIVE_DRAG_ITEM_TYPE_CARD'
@@ -28,10 +30,14 @@ function BoardContent({ board }) {
 
   const [orderedColumns, setOrderedColumns] = useState([])
 
+  // Cùng một thời điểm chỉ có 1 phần tủ được kéo
   const [activeDragItemId, setActiveDragItemId] = useState(null)
   const [activeDragItemType, setActiveDragItemType] = useState(null)
   const [activeDragItemData, setActiveDragItemData] = useState(null)
   const [oldColumnDragingCard, setOldColumnDragingCard] = useState(null)
+
+  // Điểm va chạm cuối cùng của thuật toán phát hiện va chạm
+  const lastOverId = useRef(null)
 
   useEffect(() => {
     setOrderedColumns(mapOrder(board?.columns, board?.columnOrderIds, '_id'))
@@ -188,6 +194,37 @@ function BoardContent({ board }) {
     setActiveDragItemData(null)
     setOldColumnDragingCard(null)
   }
+
+  const collisionDetectionStrategy = useCallback(
+    (args) => {
+      if (activeDragItemType == ACTIVE_DRAG_ITEM_TYPE.COLUMN) {
+        return closestCorners({ ...args })
+      }
+
+      // Tìm các điểm giao nhau
+      const pointerIntersections = pointerWithin(args)
+      if (!pointerIntersections?.length) return
+
+      let overId = getFirstCollision(pointerIntersections, 'id')
+      if (overId) {
+        const checkColumn = orderedColumns.find((column) => column._id === overId)
+        if (checkColumn) {
+          overId = closestCorners({
+            ...args,
+            droppableContainers: args.droppableContainers.filter((container) => {
+              return container.id !== overId && checkColumn?.cardOrderIds?.includes(container.id)
+            })
+          })[0]?.id
+        }
+
+        lastOverId.current = overId
+        return [{ id: overId }]
+      }
+
+      return lastOverId.current ? [{ id: lastOverId.current }] : []
+    },
+    [activeDragItemType, orderedColumns]
+  )
   const dropAnimation = {
     sideEffects: defaultDropAnimationSideEffects({
       styles: {
@@ -200,7 +237,8 @@ function BoardContent({ board }) {
 
   return (
     <DndContext
-      collisionDetection={closestCorners}
+      collisionDetection={collisionDetectionStrategy}
+      // collisionDetection={closestCorners}
       onDragEnd={handleDragEnd}
       sensors={mySensors}
       onDragOver={handleDragOver}
