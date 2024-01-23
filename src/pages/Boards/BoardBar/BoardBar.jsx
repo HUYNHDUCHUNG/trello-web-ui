@@ -33,7 +33,9 @@ function BoardBar({ board }) {
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-        <Chip sx={CHIP_STYLE} avatar={<DashboardIcon />} label={board?.title} clickable />
+        <Tooltip title={board?.description}>
+          <Chip sx={CHIP_STYLE} avatar={<DashboardIcon />} label={board?.title} clickable />
+        </Tooltip>
         <Chip sx={CHIP_STYLE} avatar={<VpnLockIcon />} label={capitalizeFirstLetter(board?.type)} clickable />
         <Chip sx={CHIP_STYLE} avatar={<AddToDriveIcon />} label='Add To GoogleDriver' clickable />
         <Chip sx={CHIP_STYLE} avatar={<BoltIcon />} label='Automation' clickable />
