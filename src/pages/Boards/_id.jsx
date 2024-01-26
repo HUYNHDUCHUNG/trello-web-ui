@@ -60,7 +60,7 @@ function _id() {
     const columnToUpdate = newBoard.columns.find((column) => column._id === createdCard.columnId)
     if (columnToUpdate) {
       if (columnToUpdate.cards.some((card) => card.FE_PlaceholderCard)) {
-        columnToUpdate.cards = [createNewCard]
+        columnToUpdate.cards = [createdCard]
         columnToUpdate.cardOrderIds = [createdCard._id]
       } else {
         columnToUpdate.cards.push(createdCard)
