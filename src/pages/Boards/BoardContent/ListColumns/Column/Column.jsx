@@ -237,7 +237,7 @@ function Column({ column, createNewCard, deleteColumnDetails }) {
                       borderColor: '#2a9dcc'
                     },
                     '&:hover fieldset': {
-                      borderColor: 'transparent'
+                      borderColor: 'primary.main'
                     },
                     '&.Mui-focused fieldset': {
                       borderColor: '#2a9dcc'
