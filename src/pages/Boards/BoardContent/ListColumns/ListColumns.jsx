@@ -92,6 +92,7 @@ function ListColumns({ columns, createNewColumn, createNewCard, deleteColumnDeta
               label='Enter column title...'
               type='text'
               size='small'
+              autoFocus
               value={newColumnTitle}
               onChange={(e) => setNewColumnTitle(e.target.value)}
               sx={{

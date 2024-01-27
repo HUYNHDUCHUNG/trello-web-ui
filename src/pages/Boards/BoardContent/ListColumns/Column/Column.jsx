@@ -213,6 +213,7 @@ function Column({ column, createNewCard, deleteColumnDetails }) {
                 type='text'
                 size='small'
                 data-no-dnd='true'
+                autoFocus
                 value={newCardTitle}
                 onChange={(e) => setNewCardTitle(e.target.value)}
                 sx={{
